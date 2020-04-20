@@ -28,4 +28,12 @@ public class Money {
         this.amount += added.amount;
         return this;
     }
+
+    public Money multiply(Integer quantity) {
+        this.amount *= quantity;
+        return this;
+    }
+    public boolean isGreaterThan(Money limitPrice) {
+        return limitPrice.amount >= this.amount;
+    }
 }
