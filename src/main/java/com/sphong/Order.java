@@ -16,11 +16,11 @@ public class Order extends EntryPoint{
         this.customer = customer;
     }
 
-    public Order with(String productName, int quantity) {
+    public Order with(String productName, int quantity) throws OrderLimitExceededException {
         return with(new OrderLineItem(productName, quantity));
     }
 
-    private Order with(OrderLineItem lineItem) {
+    private Order with(OrderLineItem lineItem) throws OrderLimitExceededException {
         if (isExceedLimit(customer, lineItem)) {
             throw new OrderLimitExceededException();
         }

@@ -18,4 +18,8 @@ public class OrderRepository {
     public Set<Order> findAll() {
         return new HashSet<Order>((Collection<? extends Order>) Register.getAll(Order.class));
     }
+
+    public Order delete(String orderNumber) {
+        return (Order) Register.delete(Order.class, orderNumber);
+    }
 }

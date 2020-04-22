@@ -4,7 +4,7 @@ public class OrderLineItem {
     private Product product;
     private Integer quantity;
 
-    private ProductRepository productRepository = new ProductRepository();
+    private ProductRepository productRepository = new ProductRepositoryImpl();
 
     public OrderLineItem(String productName, Integer quantity) {
         this.product = productRepository.find(productName);

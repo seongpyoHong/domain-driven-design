@@ -26,6 +26,16 @@ public class Register {
         return soleInstance.getAllObjects(entryPointClass);
     }
 
+    public static EntryPoint delete(Class<?> entryPointClass, String objectName) {
+        return soleInstance.deleteObj(entryPointClass, objectName);
+    }
+
+    private EntryPoint deleteObj(Class<?> entryPointClass, String objectName) {
+        Map<String, EntryPoint> foundEntryPoint =
+                entryPoints.get(entryPointClass);
+        return foundEntryPoint.remove(objectName);
+    }
+
     private EntryPoint getObj(Class<? extends EntryPoint> entryPointClass, String objectName) {
         Map<String, EntryPoint> foundEntryPoint =
                 entryPoints.get(entryPointClass);
