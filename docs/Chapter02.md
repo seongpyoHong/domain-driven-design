@@ -83,161 +83,168 @@ Repository는 Entry Point에 대해서만 할당한다.
 Customer는 고객의 주문 한도 검증에 필요한 limitPrice 속성을 추가한다. 
 
 **Customer**
+```java
+@Getter
+public class Customer extends EntryPoint {
+    private String number;
+    private String name;
+    private String address;
+    private Long mileages;
+    private Money limitPrice;
 
-    @Getter
-    public class Customer extends EntryPoint {
-        private String number;
-        private String name;
-        private String address;
-        private Long mileages;
-        private Money limitPrice;
-    
-        public Customer(String number, String name, String address, Integer limitPrice) {
-            super(number);
-            this.number = number;
-            this.name = name;
-            this.address = address;
-            this.limitPrice = new Money(limitPrice);
-        }
-    
-        ....
-    
-        public Order newOrder(String orderId) {
-            return Order.order(orderId, this);
-        }
-    
-        public boolean isExceedLimitPrice(Money money) {
-            return money.isGreaterThan(limitPrice);
-        }
+    public Customer(String number, String name, String address, Integer limitPrice) {
+        super(number);
+        this.number = number;
+        this.name = name;
+        this.address = address;
+        this.limitPrice = new Money(limitPrice);
     }
+
+    ....
+
+    public Order newOrder(String orderId) {
+        return Order.order(orderId, this);
+    }
+
+    public boolean isExceedLimitPrice(Money money) {
+        return money.isGreaterThan(limitPrice);
+    }
+}
+```
 
 Order는 Entry Point이기 때문에 Entry Point를 상속 받고, Create Method를 통해서만 객체를 생성할 수 있도록 제한한다. 
+```java
+public class Order extends EntryPoint{
+    private Set<OrderLineItem> lineItems = new HashSet<>();
+    private Customer customer;
 
-    public class Order extends EntryPoint{
-        private Set<OrderLineItem> lineItems = new HashSet<>();
-        private Customer customer;
-    
-        public static Order order(String orderId, Customer customer) {
-            return new Order(orderId, customer);
-        }
-    
-        Order(String orderId, Customer customer) {
-            super(orderId);
-            this.customer = customer;
-        }
-    
+    public static Order order(String orderId, Customer customer) {
+        return new Order(orderId, customer);
     }
+
+    Order(String orderId, Customer customer) {
+        super(orderId);
+        this.customer = customer;
+    }
+
+}
+```
 
 주문 생성 메소드 `with()` 는 메소드 체인 방식을 적용한다.
+```java
+public Order with(String productName, int quantity) {
+    return with(new OrderLineItem(productName, quantity));
+}
 
-    public Order with(String productName, int quantity) {
-        return with(new OrderLineItem(productName, quantity));
+private Order with(OrderLineItem lineItem) {
+    if (isExceedLimit(customer, lineItem)) {
+        throw new OrderLimitExceededException();
     }
-    
-    private Order with(OrderLineItem lineItem) {
-        if (isExceedLimit(customer, lineItem)) {
-            throw new OrderLimitExceededException();
-        }
-    
-        lineItems.add(lineItem);
-        return this;
-    }
+
+    lineItems.add(lineItem);
+    return this;
+}
+```
 
 주문 총액이 고객의 한계 금액을 초과하는지 검증하는 책임을 진다.
+```java
+private Money getTotalPrice() {
+      Money result = new Money(0);
+      for(OrderLineItem item : lineItems) {
+          result = result.add(item.getPrice());
+      }
 
-    private Money getTotalPrice() {
-          Money result = new Money(0);
-          for(OrderLineItem item : lineItems) {
-              result = result.add(item.getPrice());
-          }
-    
-          return result;
-      }
-    
-      private boolean isExceedLimit(Customer customer, OrderLineItem lineItem) {
-          return customer.isExceedLimitPrice(getTotalPrice().add(lineItem.getPrice()));
-      }
+      return result;
+  }
+
+  private boolean isExceedLimit(Customer customer, OrderLineItem lineItem) {
+      return customer.isExceedLimitPrice(getTotalPrice().add(lineItem.getPrice()));
+  }
+```
 
 OrderLineItem은 Product와 연관관계를 가지며, Product는 Entry Point이기 때문에 ProductRepository를 이용해 접근한다.
+```java
+public class OrderLineItem {
+    private Product product;
+    private Integer quantity;
 
-    public class OrderLineItem {
-        private Product product;
-        private Integer quantity;
-    
-        private ProductRepository productRepository = new ProductRepository();
-    
-        public OrderLineItem(String productName, Integer quantity) {
-            this.product = productRepository.find(productName);
-            this.quantity = quantity;
-        }
-    
-        public Money getPrice() {
-            return product.getPrice().multiply(quantity);
-        }
-    
-        public Product getProduct() {
-            return product;
-        }
+    private ProductRepository productRepository = new ProductRepository();
+
+    public OrderLineItem(String productName, Integer quantity) {
+        this.product = productRepository.find(productName);
+        this.quantity = quantity;
     }
+
+    public Money getPrice() {
+        return product.getPrice().multiply(quantity);
+    }
+
+    public Product getProduct() {
+        return product;
+    }
+}
+```
 
 Product 클래스는 다음과 같다.
+```java
+public class Product extends EntryPoint {
+    private String name;
+    private Money price;
 
-    public class Product extends EntryPoint {
-        private String name;
-        private Money price;
-    
-        public Product(String name, Integer price) {
-            super(name);
-            this.name = name;
-            this.price = new Money(price);
-        }
-    
-        public Product(String name, Money price) {
-            super(name);
-            this.name = name;
-            this.price = price;
-        }
-    
-        public Money getPrice() {
-            return price;
-        }
-    
-        public String getName() {
-            return name;
-        }
+    public Product(String name, Integer price) {
+        super(name);
+        this.name = name;
+        this.price = new Money(price);
     }
 
+    public Product(String name, Money price) {
+        super(name);
+        this.name = name;
+        this.price = price;
+    }
+
+    public Money getPrice() {
+        return price;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
+```
 위의 코드는 Order 클래스에서 with를 통해 새로운 주문을 추가할 때, 동일한 상품이 있어도 다른 주문으로 인식한다. 이를 동일한 주문으로 인식하기 위해서는 주문 목록에 포함하는지 검증하는 코드를 추가해야 한다.
 
 **Order**
-
-    private Order with(OrderLineItem lineItem) {
-        if (isExceedLimit(customer, lineItem)) {
-            throw new OrderLimitExceededException();
-        }
-    
-        for(OrderLineItem item : lineItems) {
-            if (item.isProductEqual(lineItem)) {
-                item.merge(lineItem);
-                return this;
-            }
-        }
-        lineItems.add(lineItem);
-        return this;
+```java
+private Order with(OrderLineItem lineItem) {
+    if (isExceedLimit(customer, lineItem)) {
+        throw new OrderLimitExceededException();
     }
+
+    for(OrderLineItem item : lineItems) {
+        if (item.isProductEqual(lineItem)) {
+            item.merge(lineItem);
+            return this;
+        }
+    }
+    lineItems.add(lineItem);
+    return this;
+}
+```
 
 **OrderLineItem**
 
 동일한 객체인지 확인하는 작업에서 OrderLineItem의 product를 통해 비교하며, product는 Reference Object 이므로 `==` 을 통해 비교한다.
+```java
+public boolean isProductEqual(OrderLineItem lineItem) {
+    return this.product == lineItem.product;
+}
 
-    public boolean isProductEqual(OrderLineItem lineItem) {
-        return this.product == lineItem.product;
-    }
-    
-    public OrderLineItem merge(OrderLineItem lineItem) {
-        quantity += lineItem.quantity;
-        return this;
-    }
+public OrderLineItem merge(OrderLineItem lineItem) {
+    quantity += lineItem.quantity;
+    return this;
+}
+```
 
 Order 객체가 필요한 경우 Order가 Entry Point이므로 Order Repository를 통해 얻을 수 있다. 그렇다면 특정한 고객에 대한 주문 목록을 얻고자 한다면 어떻게 접근해야 할까?
 
@@ -252,25 +259,27 @@ Order 객체가 필요한 경우 Order가 Entry Point이므로 Order Repository�
     주문 객체에 접근하기 위한 일관성 있는 방법(OrderRepository로 접근)
 
 **OrderRepository**
-
-    public class OrderRepository {
-        public Set<Order> findByCustomer(Customer customer) {
-            Set<Order> results = new HashSet<Order>();
-            for (Order order : findAll()) {
-                if (order.idOrderBy(customer)) {
-                    results.add(order);
-                }
+```java
+public class OrderRepository {
+    public Set<Order> findByCustomer(Customer customer) {
+        Set<Order> results = new HashSet<Order>();
+        for (Order order : findAll()) {
+            if (order.idOrderBy(customer)) {
+                results.add(order);
             }
-            return results;
         }
-    
-        public Set<Order> findAll() {
-            return new HashSet<Order>((Collection<? extends Order>) Register.getAll(Order.class));
-        }
+        return results;
     }
+
+    public Set<Order> findAll() {
+        return new HashSet<Order>((Collection<? extends Order>) Register.getAll(Order.class));
+    }
+}
+```
 
 **Order**
-
-    public boolean idOrderBy(Customer customer) {
-        return this.customer == customer;
-    }
+```java
+public boolean idOrderBy(Customer customer) {
+    return this.customer == customer;
+}
+```

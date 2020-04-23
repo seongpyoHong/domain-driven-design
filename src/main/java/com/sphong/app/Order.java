@@ -4,9 +4,12 @@ import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.beans.factory.annotation.Configurable;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
-public class Order extends EntryPoint{
+public class Order {
+    private Long id;
+    private String orderId;
     private Set<OrderLineItem> lineItems = new HashSet<>();
     private Customer customer;
 
@@ -15,7 +18,7 @@ public class Order extends EntryPoint{
     }
 
     Order(String orderId, Customer customer) {
-        super(orderId);
+        this.orderId = orderId;
         this.customer = customer;
     }
 
@@ -53,5 +56,25 @@ public class Order extends EntryPoint{
 
     public boolean idOrderBy(Customer customer) {
         return this.customer == customer;
+    }
+    public Long getId() {
+        return id;
+    }
+
+    public String getOrderId() {
+        return orderId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Order order = (Order) o;
+        return orderId.equals(order.orderId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(orderId);
     }
 }
