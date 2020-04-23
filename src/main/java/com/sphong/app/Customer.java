@@ -1,4 +1,4 @@
-package com.sphong;
+package com.sphong.app;
 
 import lombok.Getter;
 

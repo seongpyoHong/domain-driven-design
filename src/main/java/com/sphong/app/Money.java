@@ -1,10 +1,9 @@
-package com.sphong;
+package com.sphong.app;
 
 import lombok.Getter;
 
 import java.util.Objects;
 
-@Getter
 public class Money {
     private Integer amount;
     public Money(Integer amount) {
@@ -26,14 +25,20 @@ public class Money {
 
     public Money add(Money added) {
         this.amount += added.amount;
-        return this;
+        return new Money(this.amount);
     }
 
     public Money multiply(Integer quantity) {
-        this.amount *= quantity;
-        return this;
+        return new Money(this.amount * quantity);
     }
+
     public boolean isGreaterThan(Money limitPrice) {
-        return limitPrice.amount >= this.amount;
+        System.out.println("Parameter :" + limitPrice.amount);
+        System.out.println("This : " + this.amount);
+        return limitPrice.amount < this.amount;
+    }
+
+    public Integer getAmount() {
+        return amount;
     }
 }

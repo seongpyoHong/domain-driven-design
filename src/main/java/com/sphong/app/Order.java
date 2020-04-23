@@ -1,4 +1,7 @@
-package com.sphong;
+package com.sphong.app;
+
+import org.springframework.beans.factory.annotation.Autowire;
+import org.springframework.beans.factory.annotation.Configurable;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -35,7 +38,7 @@ public class Order extends EntryPoint{
         return this;
     }
 
-    private Money getTotalPrice() {
+    public Money getTotalPrice() {
         Money result = new Money(0);
         for(OrderLineItem item : lineItems) {
             result = result.add(item.getPrice());

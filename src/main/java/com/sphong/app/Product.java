@@ -1,4 +1,4 @@
-package com.sphong;
+package com.sphong.app;
 
 public class Product extends EntryPoint {
     private String name;
