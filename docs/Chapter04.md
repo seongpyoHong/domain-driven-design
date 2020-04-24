@@ -73,7 +73,7 @@ public class Order {
     private Set<OrderLineItem> lineItems = new HashSet<>();
     private Customer customer;
 
-    public static Order order(String orderId, Customer customer) {
+    public static Order orders(String orderId, Customer customer) {
         return new Order(orderId, customer);
     }
 
@@ -93,8 +93,8 @@ public class Order {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Order order = (Order) o;
-        return orderId.equals(order.getOrderId());
+        Order orders = (Order) o;
+        return orderId.equals(orders.getOrderId());
     }
 
     @Override
@@ -135,4 +135,292 @@ public class OrderLineItem {
 }
 ```
 
-해당 클래스를 DB에 매핑하기 위해 Annotation 방법을 사용한다. (여기부터 다시)
+해당 클래스를 DB에 매핑하기 위해 Annotation 방법을 사용하여 최종적으로 리팩토링한 Entity는 다음과 같다.
+
+**Order**
+
+Order는 예약어이기 떄문에 클래스 이름을 Orders로 변경하였다.
+
+```java
+@Entity
+public class Orders {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, name = "ORDER_NAME")
+    private String orderId;
+
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<OrderLineItem> lineItems = new HashSet<>();
+
+    @ManyToOne
+    private Customer customer;
+
+    public static Orders order(String orderId, Customer customer) {
+        return new Orders(orderId, customer);
+    }
+
+    Orders(String orderId, Customer customer) {
+        this.orderId = orderId;
+        this.customer = customer;
+    }
+
+    public Orders with(String productName, int quantity) throws OrderLimitExceededException {
+        return with(new OrderLineItem(productName, quantity));
+    }
+
+    private Orders with(OrderLineItem lineItem) throws OrderLimitExceededException {
+        if (isExceedLimit(customer, lineItem)) {
+            throw new OrderLimitExceededException();
+        }
+
+        for(OrderLineItem item : lineItems) {
+            if (item.isProductEqual(lineItem)) {
+                item.merge(lineItem);
+                return this;
+            }
+        }
+        lineItems.add(lineItem);
+        return this;
+    }
+
+    public Money getTotalPrice() {
+        Money result = new Money(0);
+        for(OrderLineItem item : lineItems) {
+            result = result.add(item.getPrice());
+        }
+
+        return result;
+    }
+
+    private boolean isExceedLimit(Customer customer, OrderLineItem lineItem) {
+        return customer.isExceedLimitPrice(getTotalPrice().add(lineItem.getPrice()));
+    }
+
+    public boolean idOrderBy(Customer customer) {
+        return this.customer == customer;
+    }
+    public Long getId() {
+        return id;
+    }
+
+    public String getOrderId() {
+        return orderId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Orders orders = (Orders) o;
+        return orderId.equals(orders.orderId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(orderId);
+    }
+}
+```
+
+**OrderLineItem**
+
+```java
+@Entity
+@Configurable(autowire = Autowire.BY_TYPE, value = "orderLineItem", preConstruction = true)
+public class OrderLineItem {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @ManyToOne
+    private Product product;
+    @Column(nullable = false)
+    private Integer quantity;
+
+    @Autowired
+    @Transient
+    private ProductRepository productRepository;
+
+    public OrderLineItem(String productName, Integer quantity) {
+        this.product = productRepository.findByName(productName).get();
+        this.quantity = quantity;
+    }
+
+    public Money getPrice() {
+        return product.getPrice().multiply(quantity);
+    }
+
+    public Product getProduct() {
+        return product;
+    }
+
+    public boolean isProductEqual(OrderLineItem lineItem) {
+        return this.product == lineItem.product;
+    }
+
+    public OrderLineItem merge(OrderLineItem lineItem) {
+        quantity += lineItem.quantity;
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        OrderLineItem that = (OrderLineItem) o;
+        return Objects.equals(product, that.product) &&
+                Objects.equals(quantity, that.quantity);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(product, quantity);
+    }
+}
+```
+
+**Customer**
+
+```java
+@Getter
+@Entity
+public class Customer {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String number;
+    private String name;
+    private String address;
+    private Long mileages;
+    private Money limitPrice;
+
+    public Customer(){
+    }
+    public Customer(String number, String name, String address, Integer limitPrice) {
+        this.number = number;
+        this.name = name;
+        this.address = address;
+        this.limitPrice = new Money(limitPrice);
+    }
+
+    public void purchase(Long price) {
+        this.mileages += (price / 100L);
+    }
+
+    public Boolean isPossibleToPayWithMileage(Long price) {
+        return mileages > price;
+    }
+
+    public Boolean payWithMileage(Long price) {
+        if (isPossibleToPayWithMileage(price)) {
+            return false;
+        }
+        mileages -= price;
+        return true;
+    }
+
+    public Orders newOrder(String orderId) {
+        return Orders.order(orderId, this);
+    }
+
+    public boolean isExceedLimitPrice(Money money) {
+        return money.isGreaterThan(limitPrice);
+    }
+}
+```
+
+**Product**
+
+```java
+@Entity
+public class Product{
+    @Id
+    private String name;
+
+    private Money price;
+
+    public Product() {
+    }
+    public Product(String name, Integer price) {
+        this.name = name;
+        this.price = new Money(price);
+    }
+
+    public Product(String name, Money price) {
+        this.name = name;
+        this.price = price;
+    }
+
+    public Money getPrice() {
+        return price;
+    }
+
+    public String getName() {
+        return name;
+    }
+}
+```
+
+**Money**
+
+Money는 Value Object 이기 때문에 @Embeddable을 통해 객체의 속성값 그대로 DB에 저장할 수 있도록 한다. 
+
+```java
+@Embeddable
+public class Money {
+    private Integer amount;
+    public Money() {
+    }
+    public Money(Integer amount) {
+        this.amount = amount;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Money money = (Money) o;
+        return Objects.equals(amount, money.amount);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(amount);
+    }
+
+    public Money add(Money added) {
+        this.amount += added.amount;
+        return new Money(this.amount);
+    }
+
+    public Money multiply(Integer quantity) {
+        return new Money(this.amount * quantity);
+    }
+
+    public boolean isGreaterThan(Money limitPrice) {
+        System.out.println("Parameter :" + limitPrice.amount);
+        System.out.println("This : " + this.amount);
+        return limitPrice.amount < this.amount;
+    }
+
+    public Integer getAmount() {
+        return amount;
+    }
+}
+```
+
+Repository는 JpaRepository를 상속받아 필요한 함수만 추가 구현하였다.
+
+**OrderRepository**
+
+```java
+@Repository
+public interface OrderRepository extends JpaRepository<Orders, Long> {
+    Set<Orders> findByCustomer(Customer customer);
+}
+```
+
+나머지 Repository는 생략한다.
+
+**지금까지의 과정을 통해 실제 도메인의 용어와 개념을 사용하여 어플리케이션을 구성 → 도메인을 추상화한 단일 모델을 통해 개발 주도, 비침투적인 인프라 스트럭처를 사용하여 도메인의 독립성을 보장하는 도메인 주도 설계에 대해서 알아보았다.**

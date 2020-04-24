@@ -1,12 +1,11 @@
 package com.sphong.app;
 
-import org.springframework.stereotype.Component;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.Set;
 
-public interface OrderRepository {
-    Set<Order> findByCustomer(Customer customer);
-    Set<Order> findAll();
-    Order delete(String orderNumber);
-    void save(Order order);
+@Repository
+public interface OrderRepository extends JpaRepository<Orders, Long> {
+    Set<Orders> findByCustomer(Customer customer);
 }

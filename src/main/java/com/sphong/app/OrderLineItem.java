@@ -4,19 +4,28 @@ import org.springframework.beans.factory.annotation.Autowire;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Configurable;
 
+import javax.persistence.*;
 import java.util.Objects;
 
+
+@Entity
 @Configurable(autowire = Autowire.BY_TYPE, value = "orderLineItem", preConstruction = true)
 public class OrderLineItem {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @ManyToOne
     private Product product;
+    @Column(nullable = false)
     private Integer quantity;
 
     @Autowired
+    @Transient
     private ProductRepository productRepository;
 
+
     public OrderLineItem(String productName, Integer quantity) {
-        this.product = productRepository.find(productName);
+        this.product = productRepository.findByName(productName).get();
         this.quantity = quantity;
     }
 

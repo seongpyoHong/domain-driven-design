@@ -1,11 +1,16 @@
 package com.sphong.app;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
+import javax.persistence.Embeddable;
 import java.util.Objects;
 
+@Embeddable
 public class Money {
     private Integer amount;
+    public Money() {
+    }
     public Money(Integer amount) {
         this.amount = amount;
     }

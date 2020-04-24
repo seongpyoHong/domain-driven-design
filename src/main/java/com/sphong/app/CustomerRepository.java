@@ -1,8 +1,11 @@
 package com.sphong.app;
 
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-public interface CustomerRepository {
-    void save(Customer customer);
-    Customer find(String identity);
+import java.util.Optional;
+
+@Repository
+public interface CustomerRepository extends JpaRepository<Customer, Long> {
+    Optional<Customer> findByName(String name);
 }

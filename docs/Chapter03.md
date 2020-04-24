@@ -244,9 +244,9 @@ public interface OrderRepository {
         
         public Set<Order> findByCustomer(Customer customer) {
             Set<Order> results = new HashSet<Order>();
-            for (Order order : findAll()) {
-                if (order.idOrderBy(customer)) {
-                    results.add(order);
+            for (Order orders : findAll()) {
+                if (orders.idOrderBy(customer)) {
+                    results.add(orders);
                 }
             }
             return results;
@@ -393,11 +393,11 @@ class OrderTest {
 
     @Test
     public void testOrderPrice() throws OrderLimitExceededException {
-        Order order = customer.newOrder("CUST-01-ORDER-01")
+        Order orders = customer.newOrder("CUST-01-ORDER-01")
                 .with("상품1",10)
                 .with("상품2",20);
-        orderRepository.save(order);
-        assertEquals(new Money(110000), order.getTotalPrice());
+        orderRepository.save(orders);
+        assertEquals(new Money(110000), orders.getTotalPrice());
     }
 }
 ```

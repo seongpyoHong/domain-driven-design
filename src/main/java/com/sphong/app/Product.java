@@ -1,17 +1,26 @@
 package com.sphong.app;
 
-public class Product extends EntryPoint {
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Target;
+
+import javax.persistence.*;
+
+@Entity
+public class Product{
+    @Id
     private String name;
+
     private Money price;
 
+    public Product() {
+    }
     public Product(String name, Integer price) {
-        super(name);
         this.name = name;
         this.price = new Money(price);
     }
 
     public Product(String name, Money price) {
-        super(name);
         this.name = name;
         this.price = price;
     }

@@ -103,7 +103,7 @@ public class Customer extends EntryPoint {
     ....
 
     public Order newOrder(String orderId) {
-        return Order.order(orderId, this);
+        return Order.orders(orderId, this);
     }
 
     public boolean isExceedLimitPrice(Money money) {
@@ -118,7 +118,7 @@ public class Order extends EntryPoint{
     private Set<OrderLineItem> lineItems = new HashSet<>();
     private Customer customer;
 
-    public static Order order(String orderId, Customer customer) {
+    public static Order orders(String orderId, Customer customer) {
         return new Order(orderId, customer);
     }
 
@@ -263,9 +263,9 @@ Order 객체가 필요한 경우 Order가 Entry Point이므로 Order Repository�
 public class OrderRepository {
     public Set<Order> findByCustomer(Customer customer) {
         Set<Order> results = new HashSet<Order>();
-        for (Order order : findAll()) {
-            if (order.idOrderBy(customer)) {
-                results.add(order);
+        for (Order orders : findAll()) {
+            if (orders.idOrderBy(customer)) {
+                results.add(orders);
             }
         }
         return results;
